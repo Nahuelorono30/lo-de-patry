@@ -691,6 +691,7 @@
   let PRODUCTOS = [];
   let CATEGORIAS = [];
   let filtroActivo = 'todas';
+   let limiteVisible = 24;
 
   /* ============================================================
      4) RENDER DEL BENTO GRID
@@ -701,25 +702,26 @@
     return 'bento-item';
   }
 
-  function renderBento() {
-    const lista = filtroActivo === 'todas'
+   function renderBento() {
+    const listaCompleta = filtroActivo === 'todas'
       ? PRODUCTOS
       : PRODUCTOS.filter((p) => (p.categorias?.nombre || p.categoria || '') === filtroActivo);
 
-    if (!lista.length) {
+    if (!listaCompleta.length) {
       bento.innerHTML = '';
-      estado.textContent = 'No hay productos en esta categoría todavía.';
+      estado.innerHTML = 'No hay productos en esta categoría todavía.';
       return;
     }
 
-    estado.textContent = '';
+    const lista = listaCompleta.slice(0, limiteVisible);
+
     bento.innerHTML = lista.map((p, i) => {
       const cat = p.categorias?.nombre || p.categoria || 'Catálogo';
       const img = p.imagen_url || './images/IMAGEN_3.jpg';
       const precio = precioARS(p.precio);
       return (
-        '<a class="' + claseBento(p, i) + '" href="' + waLink('Hola! Quiero consultar por: ' + p.nombre) + '" target="_blank" rel="noopener">' +
-          '<img class="foto" src="' + escapar(img) + '" alt="' + escapar(p.nombre) + '" loading="lazy" />' +
+        '<article class="' + claseBento(p, i) + '" style="cursor:pointer" data-id="' + p.id + '">' +
+          '<img class="foto" src="' + escapar(img) + '" alt="' + escapar(p.nombre) + '" loading="lazy" decoding="async" />' +
           '<div class="velo"></div>' +
           '<span class="bento-chip">' + escapar(cat) + '</span>' +
           (precio ? '<span class="bento-precio">' + precio + '</span>' : '') +
@@ -727,10 +729,24 @@
             '<h3>' + escapar(p.nombre) + '</h3>' +
             '<p>' + permitirEtiquetas(p.descripcion || '') + '</p>' +
           '</div>' +
-        '</a>'
+        '</article>'
       );
     }).join('');
+
+    if (listaCompleta.length > limiteVisible) {
+      estado.innerHTML =
+        '<button type="button" id="btnVerMas" class="btn btn-suave" style="margin-top:16px">' +
+          'Ver más productos (' + (listaCompleta.length - limiteVisible) + ' restantes)' +
+        '</button>';
+      $('#btnVerMas').addEventListener('click', () => {
+        limiteVisible += 24;
+        renderBento();
+      });
+    } else {
+      estado.textContent = '';
+    }
   }
+
 
   function renderFiltros() {
     const nombres = [...new Set(PRODUCTOS.map((p) => p.categorias?.nombre || p.categoria).filter(Boolean))];
@@ -745,6 +761,7 @@
     const btn = e.target.closest('.filtro');
     if (!btn) return;
     filtroActivo = btn.dataset.cat;
+        limiteVisible = 24;
     renderFiltros();
     renderBento();
   });
